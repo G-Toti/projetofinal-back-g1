@@ -25,3 +25,18 @@ export const createProduct = async (req, res) => {
     msg: "Produto criado com sucesso!",
   });
 };
+
+export const getProducts = async (req, res) => {
+  const products = await prisma.product.findMany({
+    where: {
+      name: {
+        contains: req.query.name
+      }
+    }
+  })
+
+  res.json({
+    data: products,
+    msg: "Produtos encontrados com sucesso!"
+  })
+}
