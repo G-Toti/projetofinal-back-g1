@@ -110,6 +110,13 @@ require('crypto').randomBytes(64).toString('hex');
 
 ~~~
 
+Por fim, é preciso subir as informações do prisma para o seu banco de dados
+~~~cmd
+
+npx prisma db push
+
+~~~
+
 ## Uso do projeto
 
 Para utilizar o projeto existem alguns comandos que serão importantes
