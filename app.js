@@ -4,7 +4,8 @@ import productRouter from "./routes/product.routes.js";
 import initAdmin from "./utils/init.js";
 
 const app = express();
-const port = 3001;
+const port = process.env.APP_PORT ?? 3001;
+const host = process.env.HOST ?? "localhost";
 
 app.use(express.json());
 
@@ -17,5 +18,5 @@ app.use("/products", productRouter); // rota dos produtos
 app.listen(port, () => {
   initAdmin();
 
-  console.log("Servidor rodando na porta " + port);
+  console.log("Servidor rodando na porta http://" + host + ":" + port);
 });
