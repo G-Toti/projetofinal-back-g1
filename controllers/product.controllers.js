@@ -25,3 +25,41 @@ export const createProduct = async (req, res) => {
     msg: "Produto criado com sucesso!",
   });
 };
+
+export const getProduct = async (req, res) => {
+  const product = await prisma.product.findUnique({
+    where: {
+      id: parseInt(req.params.productId),
+    },
+  });
+
+  if (!product)
+    return res.status(404).json({
+      msg: "Produto não pode ser encontrado. Verifique os parâmetros de busca e tente novamente.",
+    });
+
+  res.status(200).json({
+    data: product,
+    msg: "Produto encontrado com sucesso!",
+  });
+};
+
+export const getProducts = async (req, res) => {
+  const products = await prisma.product.findMany({
+    where: {
+      name: {
+        contains: req.query.name,
+      },
+    },
+  });
+
+  if (!products.length)
+    return res.status(404).json({
+      msg: "Nenhum produto pode ser encontrado. Verifique os parâmetros de busca e tente novamente.",
+    });
+
+  res.status(200).json({
+    data: products,
+    msg: "Produtos encontrados com sucesso!",
+  });
+};
