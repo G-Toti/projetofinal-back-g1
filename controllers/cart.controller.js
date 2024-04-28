@@ -19,3 +19,20 @@ export const addToCart = async (req, res) => {
     msg: "Produto adicionado com sucesso!",
   });
 };
+
+export const removeFromCart = async (req, res) => {
+  const cart = await prisma.cart.update({
+    where: {
+      id: req.body.id,
+    },
+    data: {
+      product: {
+        disconnect: req.body.product,
+      },
+    },
+  });
+
+  res.status(200).json({
+    msg: "Produto removido com sucesso!",
+  });
+};
