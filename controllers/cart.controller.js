@@ -111,7 +111,7 @@ export const sellProduct = async (req, res) => {
     });
   }
 
-  if (!(await isAvailable(req.body.product))) {
+  /*if (!(await isAvailable(req.body.product))) {
     // verifica se os produtos ainda estão no estoque
     return res.status(400).json({
       msg: "Um dos produtos que você está tentando comprar está esgotado ou não existe. Por favor, busque por outro em nossa loja!",
@@ -122,9 +122,10 @@ export const sellProduct = async (req, res) => {
     return res.status(400).json({
       msg: "Houve uma tentativa de comprar um item que não está no carrinho ou não existe. Por favor, verifique o body da requisição e tente novamente.",
     });
-  }
+  }*/
 
   await prisma.product.updateMany({
+    // atualiza todos os produtos
     where: {
       AND: {
         id: {
@@ -149,7 +150,7 @@ export const sellProduct = async (req, res) => {
     },
   });
 
-  const updatedCart = await prisma.cart.update({
+  const newCart = await prisma.cart.update({
     // remove os produtos do carrinho
     where: {
       id: req.body.id,
@@ -163,6 +164,8 @@ export const sellProduct = async (req, res) => {
       product: true,
     },
   });
+
+  console.log(newCart);
 
   res.status(200).json({
     msg: "Venda concluida com sucesso!",

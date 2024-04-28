@@ -24,6 +24,13 @@ export default function userLevel(req, res, next) {
         });
       }
 
+      if (user.id !== req.body.id) {
+        return res.status(403).json({
+          token: token,
+          msg: `O usuário que está tentando acessar essa rota não é o usuário dono desse perfil`,
+        });
+      }
+
       next(); // deu tudo certo, pode seguir para a próxima rota
     });
   } else {
