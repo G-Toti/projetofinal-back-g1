@@ -3,16 +3,6 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const isAvailable = async (productId) => {
-  const exists = await prisma.product.findFirst({
-    where: {
-      id: {
-        in: productId.map((p) => p.id),
-      },
-    },
-  });
-
-  if (!exists) return false;
-
   const product = await prisma.product.findMany({
     where: {
       id: {
@@ -21,26 +11,7 @@ const isAvailable = async (productId) => {
     },
   });
 
-  return product.every((current) => current.stock > 0);
-};
-
-const isInCart = async (productId, cartId) => {
-  const cart = await prisma.cart.findFirst({
-    where: {
-      id: cartId,
-    },
-    include: {
-      product: true,
-    },
-  });
-
-  const products = productId.map((p) => p.id);
-
-  return (
-    cart.product
-      .map((p) => p.id)
-      .every((current) => products.includes(current)) && cart.product.length > 0
-  );
+  return product.every((current) => current.stock > 0) && product.length > 0;
 };
 
 export const addToCart = async (req, res) => {
@@ -51,7 +22,7 @@ export const addToCart = async (req, res) => {
     });
   }
 
-  await prisma.cart.update({
+  const cart = await prisma.cart.update({
     // como o carrinho tem o mesmo id do usuario sempre, posso fazer isso
     where: {
       id: req.body.id,
@@ -69,25 +40,36 @@ export const addToCart = async (req, res) => {
 };
 
 export const removeFromCart = async (req, res) => {
-  if (!(await isInCart(req.body.product, req.body.id))) {
+  const product = await prisma.cart
+    .update({
+      where: {
+        id: req.body.id,
+        product: {
+          some: {
+            id: {
+              in: req.body.product.map((p) => p.id),
+            },
+          },
+        },
+      },
+      data: {
+        product: {
+          disconnect: req.body.product,
+        },
+      },
+      include: {
+        product: true,
+      },
+    })
+    .catch(() => {
+      return null;
+    });
+
+  if (product === null) {
     return res.status(400).json({
-      msg: "Houve uma tentativa de remover um item que não está no carrinho ou não existe. Por favor, verifique o body da requisição e tente novamente.",
+      msg: "Ao menos um dos itens enviados não está no carrinho ou não existe. Portanto, não é possível removê-los.",
     });
   }
-
-  await prisma.cart.update({
-    where: {
-      id: req.body.id,
-    },
-    data: {
-      product: {
-        disconnect: req.body.product,
-      },
-    },
-    include: {
-      product: true,
-    },
-  });
 
   res.status(200).json({
     msg: "Produto removido com sucesso!",
@@ -95,6 +77,7 @@ export const removeFromCart = async (req, res) => {
 };
 
 export const sellProduct = async (req, res) => {
+  const productsIds = req.body.product.map((p) => p.id);
   const cart = await prisma.cart.findUnique({
     where: {
       id: req.body.id,
@@ -111,33 +94,57 @@ export const sellProduct = async (req, res) => {
     });
   }
 
-  /*if (!(await isAvailable(req.body.product))) {
-    // verifica se os produtos ainda estão no estoque
+  if (
+    !productsIds.every((current) =>
+      cart.product.map((p) => p.id).includes(current)
+    )
+  ) {
+    // verificar se todos os produtos que estão sendo enviados para a compra estão no carrinho
     return res.status(400).json({
-      msg: "Um dos produtos que você está tentando comprar está esgotado ou não existe. Por favor, busque por outro em nossa loja!",
+      msg: "Ao menos um dos itens enviados não está no carrinho ou não existe. Busque pelos produtos desejados na loja.",
     });
   }
 
-  if (!(await isInCart(req.body.product, req.body.id))) {
-    return res.status(400).json({
-      msg: "Houve uma tentativa de comprar um item que não está no carrinho ou não existe. Por favor, verifique o body da requisição e tente novamente.",
+  const newCart = await prisma.cart
+    .update({
+      // remove os produtos do carrinho
+      where: {
+        id: req.body.id,
+        product: {
+          // verificando se todos os produtos que foram para o carrinho, estão sendo enviados para a compra
+          every: {
+            id: {
+              in: productsIds,
+            },
+          },
+        },
+      },
+      data: {
+        product: {
+          disconnect: req.body.product,
+        },
+      },
+      include: {
+        product: true,
+      },
+    })
+    .catch(() => {
+      return null;
     });
-  }*/
+
+  if (newCart === null) {
+    return res.status(400).json({
+      msg: "Há produtos no carrinho que não foram enviados na requisição. Verifique as informações e tente novamente.",
+    });
+  }
 
   await prisma.product.updateMany({
     // atualiza todos os produtos
     where: {
-      AND: {
-        id: {
-          // O 'in' verifica se o dado buscado está no array, então nesse caso ele faz um map (pra poder converter o array de objs em um array de ids) e verifica para cada id enviado na requisição.
-          in: req.body.product.map((product) => product.id),
-        },
-        cart: {
-          some: {
-            // para arrays tem que usar mais algumas paravras chave, como o some, por exemplo. O some vai verificar se ao menos um item do array bate com um dos ids dos carrinos
-            id: req.body.id,
-          },
-        },
+      // como é um update many e eu não estou buscando uma relação e sim o obj, então eu não preciso do every
+      id: {
+        // O 'in' verifica se o dado buscado está no array, então nesse caso ele faz um map (pra poder converter o array de objs em um array de ids) e verifica para cada id enviado na requisição.
+        in: productsIds,
       },
     },
     data: {
@@ -149,23 +156,6 @@ export const sellProduct = async (req, res) => {
       },
     },
   });
-
-  const newCart = await prisma.cart.update({
-    // remove os produtos do carrinho
-    where: {
-      id: req.body.id,
-    },
-    data: {
-      product: {
-        disconnect: req.body.product,
-      },
-    },
-    include: {
-      product: true,
-    },
-  });
-
-  console.log(newCart);
 
   res.status(200).json({
     msg: "Venda concluida com sucesso!",
