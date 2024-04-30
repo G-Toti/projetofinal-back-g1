@@ -9,6 +9,9 @@ export const createUser = async (req, res) => {
     where: {
       email: req.body.email,
     },
+    select: {
+      email: true,
+    },
   });
 
   if (exists)
