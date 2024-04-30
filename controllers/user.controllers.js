@@ -9,6 +9,9 @@ export const createUser = async (req, res) => {
     where: {
       email: req.body.email,
     },
+    select: {
+      email: true,
+    },
   });
 
   if (exists)
@@ -59,7 +62,10 @@ export const login = async (req, res) => {
     },
   });
 
-  if (user === null) {
+  // MySQL faz um insensitive case search por padrão e o prisma não possui uma opção para alterar isso.
+  // então eu preciso diferenciar as letras minusculas de maiusculas por minha conta
+
+  if (user === null || req.body.password !== user.password) {
     // nenhum usuário encontrado
     return res.status(403).json({
       msg: "Email ou senha incorretos.",
