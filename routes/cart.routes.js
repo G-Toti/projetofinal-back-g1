@@ -3,8 +3,8 @@ import * as cartController from "../controllers/cart.controller.js";
 
 const router = express.Router();
 
-router.post("/add", cartController.addToCart);
-router.post("/remove", cartController.removeFromCart);
-router.post("/sell", cartController.sellProduct);
+router.put("/add", cartController.addToCart);
+router.put("/remove", cartController.removeFromCart);
+router.put("/sell", cartController.sellProduct);
 
 export default router;
