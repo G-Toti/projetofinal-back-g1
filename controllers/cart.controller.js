@@ -11,7 +11,11 @@ const isAvailable = async (productId) => {
     },
   });
 
-  return product.every((current) => current.stock > 0) && product.length > 0;
+  return (
+    product.every((current) => current.stock > 0) &&
+    product.length > 0 &&
+    product.length === productId.length
+  );
 };
 
 export const addToCart = async (req, res) => {
@@ -67,7 +71,7 @@ export const removeFromCart = async (req, res) => {
 
   if (product === null) {
     return res.status(400).json({
-      msg: "Ao menos um dos itens enviados não está no carrinho ou não existe. Portanto, não é possível removê-los.",
+      msg: "Nenhum dos itens enviados está no carrinho ou não existe. Portanto, não é possível removê-los.",
     });
   }
 
@@ -78,6 +82,8 @@ export const removeFromCart = async (req, res) => {
 
 export const sellProduct = async (req, res) => {
   const productsIds = req.body.product.map((p) => p.id);
+  const productsQuantity = req.body.product.map((p) => p.quantity);
+
   const cart = await prisma.cart.findUnique({
     where: {
       id: req.body.id,
@@ -105,6 +111,18 @@ export const sellProduct = async (req, res) => {
     });
   }
 
+  if (
+    !cart.product.every((item) => {
+      for (let p of req.body.product) {
+        if (item.id === p.id && item.stock >= p.quantity) return true;
+      }
+      return false;
+    })
+  ) {
+    return res.status(400).json({
+      msg: "A quantidade de ao menos um dos produtos enviados é maior que a quantidade desse produto no estoque. Por favor, verifique a requisição!",
+    });
+  }
   const newCart = await prisma.cart
     .update({
       // remove os produtos do carrinho
@@ -121,7 +139,9 @@ export const sellProduct = async (req, res) => {
       },
       data: {
         product: {
-          disconnect: req.body.product,
+          disconnect: req.body.product.map((p) => {
+            return { id: p.id };
+          }),
         },
       },
       include: {
@@ -138,24 +158,27 @@ export const sellProduct = async (req, res) => {
     });
   }
 
-  await prisma.product.updateMany({
-    // atualiza todos os produtos
-    where: {
-      // como é um update many e eu não estou buscando uma relação e sim o obj, então eu não preciso do every
-      id: {
-        // O 'in' verifica se o dado buscado está no array, então nesse caso ele faz um map (pra poder converter o array de objs em um array de ids) e verifica para cada id enviado na requisição.
-        in: productsIds,
+  // o tamanho já está verificado, bem como os itens
+
+  //apesar de ser mais lento e n escalar muito bem, n encontrei uma forma melhor de fazer isso
+
+  for (let i = 0; i < req.body.product.length; i++) {
+    await prisma.product.update({
+      // atualiza todos os produtos
+      where: {
+        // como é um update many e eu não estou buscando uma relação e sim o obj, então eu não preciso do every
+        id: productsIds[i],
       },
-    },
-    data: {
-      stock: {
-        decrement: 1,
+      data: {
+        stock: {
+          decrement: productsQuantity[i],
+        },
+        sold: {
+          increment: productsQuantity[i],
+        },
       },
-      sold: {
-        increment: 1,
-      },
-    },
-  });
+    });
+  }
 
   res.status(200).json({
     msg: "Venda concluida com sucesso!",
