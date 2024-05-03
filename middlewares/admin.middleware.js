@@ -15,20 +15,19 @@ export default function adminLevel(req, res, next) {
   if (token) {
     // token encontrado
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      if (err) {
+        // token inválido
+        return res.status(403).json({
+          token: token,
+          msg: `Token para o usuário enviado é inválido`,
+        });
+      }
+
       let userObject = {
         id: user.id,
         email: user.email,
         role: user.role,
       };
-
-      if (err) {
-        // token inválido
-        return res.status(403).json({
-          data: userObject,
-          token: token,
-          msg: `Token para o usuário enviado é inválido`,
-        });
-      }
 
       if (!user.role) {
         // usuário não é um administrador
