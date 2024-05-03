@@ -39,6 +39,17 @@ export const createUser = async (req, res) => {
         },
       },
     },
+    include: {
+      profile: {
+        include: {
+          cart: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   const token = generateToken(user); // gerando token de acesso
@@ -58,6 +69,17 @@ export const login = async (req, res) => {
       AND: {
         email: req.body.email,
         password: req.body.password,
+      },
+    },
+    include: {
+      profile: {
+        include: {
+          cart: {
+            include: {
+              product: true,
+            },
+          },
+        },
       },
     },
   });
