@@ -18,15 +18,19 @@ export default function userLevel(req, res, next) {
       if (err) {
         // token inválido
         return res.status(403).json({
-          data: user,
           token: token,
           msg: `Token para o usuário enviado é inválido`,
         });
       }
 
+      let userObject = {
+        idUsuario: user.id,
+        idEnviado: req.body.id,
+      };
+
       if (user.id !== req.body.id) {
         return res.status(403).json({
-          data: { idUsuario: user.id, idEnviado: req.body.id },
+          data: userObject,
           token: token,
           msg: `O usuário que está tentando acessar essa rota não é o usuário dono desse perfil`,
         });
