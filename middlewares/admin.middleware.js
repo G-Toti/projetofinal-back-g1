@@ -15,10 +15,16 @@ export default function adminLevel(req, res, next) {
   if (token) {
     // token encontrado
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+      let userObject = {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+      };
+
       if (err) {
         // token inválido
         return res.status(403).json({
-          data: user,
+          data: userObject,
           token: token,
           msg: `Token para o usuário enviado é inválido`,
         });
@@ -27,7 +33,7 @@ export default function adminLevel(req, res, next) {
       if (!user.role) {
         // usuário não é um administrador
         return res.status(403).json({
-          data: user,
+          data: userObject,
           token: token,
           msg: `O usuário deve ser um administrador para poder acessar essa rota.`,
         });

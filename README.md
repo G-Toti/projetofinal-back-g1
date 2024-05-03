@@ -19,6 +19,12 @@ Back-end do projeto final da capacitação de node.js da byron
     - [Login](#login)
     - [Produtos](#produtos)
     - [Cadastro](#cadastro-1)
+    - [Busca por vários produtos](#busca-por-vários-produtos)
+    - [Busca por produto específico](#busca-por-produto-específico)
+    - [Carrinho](#carrinho)
+    - [Adicionar](#adicionar)
+    - [Remover](#remover)
+    - [Fechar](#fechar)
   - [Respostas](#respostas)
     - [Usuarios](#usuarios)
     - [Cadastro](#cadastro-2)
@@ -34,6 +40,30 @@ Back-end do projeto final da capacitação de node.js da byron
       - [Usuário não é um administrador](#usuário-não-é-um-administrador)
       - [Token em formato inválido](#token-em-formato-inválido)
       - [Sucesso](#sucesso-2)
+    - [Busca por vários produtos](#busca-por-vários-produtos-1)
+      - [Nenhum produto encontrado](#nenhum-produto-encontrado)
+      - [Sucesso](#sucesso-3)
+    - [Busca por produto específico](#busca-por-produto-específico-1)
+      - [Produto não foi encontrado](#produto-não-foi-encontrado)
+      - [Sucesso](#sucesso-4)
+  - [Carrinho](#carrinho-1)
+    - [Geral](#geral)
+      - [Autenticador não enviado](#autenticador-não-enviado-1)
+      - [Token Inválido](#token-inválido-1)
+      - [Usuário Inválido](#usuário-inválido)
+      - [Token em formato inválido](#token-em-formato-inválido-1)
+    - [Adicionar](#adicionar-1)
+      - [Indisponível](#indisponível)
+      - [Sucesso](#sucesso-5)
+    - [Remover](#remover-1)
+      - [Produtos não estão no carrinho](#produtos-não-estão-no-carrinho)
+      - [Sucesso](#sucesso-6)
+    - [Fechar](#fechar-1)
+      - [Nenhum produto no carrinho](#nenhum-produto-no-carrinho)
+      - [Produtos enviados não estão no carrinho](#produtos-enviados-não-estão-no-carrinho)
+      - [Quantidade excessiva](#quantidade-excessiva)
+      - [Produtos ausentes](#produtos-ausentes)
+      - [Sucesso](#sucesso-7)
 
 ## Instalação
 ### Banco de dados
@@ -181,6 +211,49 @@ Para cadastrar um novo produto, basta utilizar o médodo `POST` na rota `/produc
 
 ~~~
 
+### Busca por vários produtos
+Basta enviar uma requisição GET para a rota `/products`. Essa requisição pode ser feita utilizando uma query filtrando por nome ou não. A query pode ser feita da seguinte maneira `/products?name=[...]`, substituindo '[...]' pelo nome buscado. Essa busca não diferencia letras maiusculas de minusculas e verifica se o nome enviado está presente no nome do produto. Por exemplo: a query 'C' retornará tanto um produto com o nome 'Carro', quanto 'Suco', pois a letra 'c' está presente em ambos
+
+### Busca por produto específico
+Basta enviar uma requisição GET para a rota `/products/id`. Sendo que o id deve ser substituido pelo id do produto buscado.
+
+### Carrinho
+
+### Adicionar
+Basta enviar uma requisição com o metodo `PUT` para a rota `cart/add` com as informações a baixo
+~~~json
+
+{
+    "id": 1, // id do carrinho (o mesmo do usuario)
+	"product": [{"id": 5}] // lista de produtos
+}
+
+~~~
+
+### Remover
+Basta enviar uma requisição com o metodo `PUT` para a rota `cart/remove` com as informações a baixo
+~~~json
+
+{
+    "id": 1, // id do carrinho (o mesmo do usuario)
+	"product": [{"id": 5}] // lista de produtos
+}
+
+~~~
+
+### Fechar
+Basta enviar uma requisição com o metodo `PUT` para a rota `cart/sell` com as informações a baixo
+~~~json
+
+{
+    "id": 1, // id do carrinho (o mesmo do usuario)
+	"product": [{"id": 5, "quantity": 2}] // lista de produtos com id e quantidade que está sendo comprada
+}
+
+~~~
+
+
+
 ## Respostas
 
 ### Usuarios
@@ -192,7 +265,7 @@ Já existe um usuário com esse email no banco de dados
 ~~~js
 
 {
-      data: user, // objeto do usuário que possui esse email
+      data: user, // objeto do usuário que possui esse email (apenas com o email)
       msg: "Email já cadastrado. O email é uma chave única e não pode ser cadastrada duas vezes.",
 }
 
@@ -287,4 +360,176 @@ O produto foi criado
     msg: "Produto criado com sucesso!",
 }
 
+~~~
+
+### Busca por vários produtos
+
+#### Nenhum produto encontrado
+Os parâmetros enviados na busca não encontraram nenhum resultado no banco de dados
+~~~js
+
+{
+    msg: "Nenhum produto pode ser encontrado. Verifique os parâmetros de busca e tente novamente.",
+}
+
+~~~
+
+#### Sucesso
+~~~js
+
+{
+    data: products, // lista de produtos encontrados
+    msg: "Produtos encontrados com sucesso!",
+}
+
+~~~
+
+### Busca por produto específico
+
+#### Produto não foi encontrado
+O id enviado não existe no banco de dados
+~~~js
+
+{
+    msg: "Produto não pode ser encontrado. Verifique os parâmetros de busca e tente novamente.",
+}
+
+~~~
+
+#### Sucesso
+~~~js
+
+{
+    data: product, // objeto do produto encontrado
+    msg: "Produto encontrado com sucesso!",
+}
+
+~~~
+
+## Carrinho
+
+### Geral
+
+#### Autenticador não enviado
+Significa que nenhum altenticador foi enviado no header
+~~~js
+{
+      msg: "Nenhum autenticador encontrado. Verifique as informações do header e tente novamente.",
+}
+~~~
+
+#### Token Inválido
+O token enviado não é válido
+~~~js
+{
+          data: user,
+          token: token,
+          msg: `Token para o usuário enviado é inválido`,
+}
+~~~
+
+#### Usuário Inválido
+O usuário que está tentando acessar essa rota não é o usuário dono do carrinho que está sendo alterado
+~~~js
+{
+    data: 
+    {
+        idUsuario: user.id, idEnviado: req.body.id, // id usuario é o id do carrinho do usuario logado, enquanto id enviado é o id que a requisição está tentando alterar 
+    },
+    token: token,
+    msg: `O usuário que está tentando acessar essa rota não é o usuário dono desse perfil`,
+}
+~~~
+
+#### Token em formato inválido
+O autenticador enviado no header não está em um formato válido. O formato esperado é: Bearer \<token\>
+
+~~~js
+
+{
+      token: authenticator,
+      msg: "Formato para o token inválido. Formato esperado: 'Bearer <token>'",
+}
+
+~~~
+
+### Adicionar
+
+#### Indisponível
+Algum dos produtos enviados na requisição não existe ou está com o estoque zerado
+
+~~~js
+
+{
+    msg: "O produto que você está tentando adicionar ao carrinho está esgotado ou não existe. Por favor, busque por outro em nossa loja!",
+}
+
+~~~
+
+#### Sucesso
+~~~js
+{
+    msg: "Produto adicionado com sucesso!",
+}
+~~~
+
+### Remover
+
+#### Produtos não estão no carrinho
+Nenhum dos produtos que foi enviado na requisição estão no carrinho
+~~~js
+{
+    msg: "Nenhum dos itens enviados está no carrinho ou não existe. Portanto, não é possível removê-los.",
+}
+~~~
+
+#### Sucesso
+~~~js
+{
+    msg: "Produto removido com sucesso!",
+}
+~~~
+
+### Fechar
+
+#### Nenhum produto no carrinho
+Nenhum produto foi adicionado no carrinho antes de fechá-lo
+
+~~~js
+{
+    msg: "Nenhum produto no carrinho! Por favor, adicione ao menos um produto a esse carrinho antes de prosseguir.",
+}
+~~~
+
+#### Produtos enviados não estão no carrinho
+Algum dos produtos enviados na requisição de fechamento não está no carrinho, ou por problema na requisição ou por não existir
+
+~~~js
+{
+    msg: "Ao menos um dos itens enviados não está no carrinho ou não existe. Busque pelos produtos desejados na loja.",
+}
+~~~
+
+#### Quantidade excessiva
+Algum dos produtos enviados na requisição está solicitando uma quantidade do produto maior do que a quantidade presente no estoque
+~~~js
+{
+    msg: "A quantidade de ao menos um dos produtos enviados é maior que a quantidade desse produto no estoque. Por favor, verifique a requisição!",
+}
+~~~
+
+#### Produtos ausentes
+Algum dos produtos que está no carrinho não está sendo enviado na requisição
+
+~~~js
+{
+    msg: "Há produtos no carrinho que não foram enviados na requisição. Verifique as informações e tente novamente.",
+}
+~~~
+
+#### Sucesso
+~~~js
+{
+    msg: "Venda concluida com sucesso!",
+}
 ~~~
